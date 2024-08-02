@@ -19,6 +19,6 @@ jobs:
       - name: Create a repository dispatch event
         uses: peter-evans/repository-dispatch@v1
         with:
-          repository: yourusername/qa-automation
+          repository: SkyTradeLinks/qa-automation
           event-type: trigger-automation
           token: ${{ secrets.GITHUB_TOKEN }}
