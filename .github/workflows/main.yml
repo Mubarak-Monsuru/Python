@@ -1,0 +1,21 @@
+name: Trigger QA Automation
+
+on:
+  push:
+    branches:
+      - main  # Change this to the branch where you merge code
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v2
+
+      - name: Trigger QA Automation
+        uses: peter-evans/repository-dispatch@v1
+        with:
+          repository: yourusername/qa-automation
+          event-type: trigger-automation
+          token: ${{ secrets.GITHUB_TOKEN }}
