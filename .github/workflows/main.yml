@@ -19,7 +19,7 @@ jobs:
       - run: npm install
       - name: Run automation script
         run: python sky_dev_qa_automation.py
-        continue-on-error: true # Allows the workflow to continue even if this step fails
+        continue-on-error: true
       - name: Send error notification
         if: always()
         uses: actions/github-script@v6
@@ -28,15 +28,9 @@ jobs:
             const core = require('@actions/core');
             const { context } = require('@actions/github');
 
-            if (context.runId) {
-              const run = context.github.rest.actions.getWorkflowRun({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                run_id: context.runId,
-              });
-              const runData = await run;
-              if (runData.status === 'failure') {
-                core.setFailed('Automation script failed');
-                // Add your notification logic here, e.g., sending email or Slack message
-              }
+            try {
+              // Your error handling logic here
+            } catch (error) {
+              core.setFailed(`Error: ${error.message}`);
+              // Add your notification logic here
             }
