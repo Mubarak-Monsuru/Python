@@ -39,7 +39,7 @@ def extract_referral_link(referral_content):
   return link, code
 
 with sync_playwright() as playwright:
-    browser = playwright.chromium.launch(headless=True)
+    browser = playwright.chromium.launch(headless=False)
     context = browser.new_context()
 
     try:
