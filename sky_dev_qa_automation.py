@@ -67,16 +67,28 @@ with sync_playwright() as playwright:
 
     try:
         # Get temporary email address 1
-        page_email = context.new_page()
-        page_email.goto("https://luxusmail.org/", timeout=0)
-        print("Opened luxusmail.org")
-        time.sleep(5)
-        copy_button = page_email.locator("div.btn_copy")
-        copy_button.wait_for(timeout=0)
-        copy_button.click()
-        time.sleep(1)
-        temp_email1 = pyperclip.paste()
-        print(f"Temporary email2: {temp_email1}")
+        # page_email = context.new_page()
+        # page_email.goto("https://luxusmail.org/", timeout=0)
+        # print("Opened luxusmail.org")
+        # time.sleep(5)
+        # copy_button = page_email.locator("div.btn_copy")
+        # copy_button.wait_for(timeout=0)
+        # copy_button.click()
+        # time.sleep(1)
+        # temp_email1 = pyperclip.paste()
+        # print(f"Temporary email2: {temp_email1}")
+
+        # Get temporary email address 2
+        email_page = context.new_page()
+        email_page.goto("https://temp-mail.org/en/", timeout=0)
+        print("Opened temp-mail.org")
+
+        # Wait for email address to be generated
+        #time.sleep(5)  # Adjust wait time depending on email generation speed
+        email_page.locator("button[id='click-to-copy']").click()
+        time.sleep(1)  # Give a moment for the clipboard to update
+        temp_email2 = pyperclip.paste()
+        print(f"Temporary email2: {temp_email2}")
 
         # Open new tab for SkyTrade
         page = context.new_page()
@@ -95,17 +107,17 @@ with sync_playwright() as playwright:
         print("Opened Register page")
 
         # Register with temporary email
-        page.locator("input[id='email']").fill(temp_email1)
+        page.locator("input[id='email']").fill(temp_email2)
         page.locator("button.bg-dark-blue").click()
         page.wait_for_load_state("networkidle", timeout=0)
         print("Filled email and clicked login")
 
         # Wait for the email to arrive and get its content
-        page_email.bring_to_front()
+        email_page.bring_to_front()
         time.sleep(13)
         #page_email.locator("div.flex.flex-col.items-center.justify-center").nth(1).click()  # Refresh email list
         print("Refreshed email list")
-        email_content = page_email.locator("div.mt-5.text-sm.truncate").inner_text()
+        email_content = email_page.locator("a[class='viewLink title-subject']").nth(1).inner_text()
         print(email_content)
         verification_code = extract_verification_code(email_content)
         print(f"Verification code: {verification_code}")
@@ -270,12 +282,15 @@ with sync_playwright() as playwright:
         #time.sleep(5)
 
         # Get temporary email address 2
-        email_page = context.new_page()
-        email_page.goto("https://temp-mail.org/en/", timeout=0)
-        print("Opened temp-mail.org")
+        email_page.bring_to_front()
+        # email_page = context.new_page()
+        # email_page.goto("https://temp-mail.org/en/", timeout=0)
+        # print("Opened temp-mail.org")
 
-        # Wait for email address to be generated
-        time.sleep(5)  # Adjust wait time depending on email generation speed
+        # # Wait for email address to be generated
+        # time.sleep(5)  # Adjust wait time depending on email generation speed
+        email_page.locator("button[id='click-to-delete']").click()
+        email_page.wait_for_load_state("networkidle", timeout=0)
         email_page.locator("button[id='click-to-copy']").click()
         time.sleep(1)  # Give a moment for the clipboard to update
         temp_email2 = pyperclip.paste()
