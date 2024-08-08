@@ -1,4 +1,5 @@
 from playwright.sync_api import sync_playwright
+from datetime import datetime
 import time
 import re
 import pyperclip
@@ -37,6 +38,28 @@ def extract_referral_link(referral_content):
     code = None
 
   return link, code
+
+def select_current_date(page):
+    current_date = str(datetime.now().day)
+    buttons = page.locator("button.MuiButtonBase-root.MuiPickersDay-root")
+
+    for i in range(buttons.count()):
+        if buttons.nth(i).inner_text() == current_date:
+            buttons.nth(i).click()
+            break
+
+def click_available_button(page):
+    points_button = page.locator("a[href='/points']")
+    referral_button = page.locator("a[href='/referral']")
+
+    # Check if the points button exists and click it
+    if points_button.count() > 0:
+        points_button.click()
+    # Otherwise, check if the referral button exists and click it
+    elif referral_button.count() > 0:
+        referral_button.click()
+    else:
+        print("Neither button is available.")
 
 with sync_playwright() as playwright:
     browser = playwright.chromium.launch(headless=False)
@@ -78,8 +101,9 @@ with sync_playwright() as playwright:
         print("Filled email and clicked login")
 
         # Wait for the email to arrive and get its content
-        time.sleep(10)
-        page_email.locator("div.flex.flex-col.items-center.justify-center").nth(1).click()  # Refresh email list
+        page_email.bring_to_front()
+        time.sleep(13)
+        #page_email.locator("div.flex.flex-col.items-center.justify-center").nth(1).click()  # Refresh email list
         print("Refreshed email list")
         email_content = page_email.locator("div.mt-5.text-sm.truncate").inner_text()
         print(email_content)
@@ -235,7 +259,8 @@ with sync_playwright() as playwright:
         rent_to_click.wait_for(timeout=0)
         rent_to_click.locator("span.rounded-lg.text-center").click()
         page.locator("svg[data-testid='CalendarIcon']").click()
-        page.locator("button[aria-colindex='4']").nth(4).click()
+        select_current_date(page)
+        #page.locator("button[aria-colindex='4']").nth(4).click()
         page.locator("li[aria-label='6 hours']").click()
         page.locator("li[aria-label='PM']").click()
         page.locator("button.flex").click()
@@ -258,7 +283,8 @@ with sync_playwright() as playwright:
 
         # Referral Program
         page.bring_to_front()
-        referral_program = dash_board.locator("a[href='/referral']").click()
+        click_available_button(page)
+        # referral_program = dash_board.locator("a[href='/points']").click()
         page.keyboard.press('PageDown')
         page.locator("div.cursor-pointer.transition.ease-linear.delay-75").nth(1).click()
         page.locator("input[id='friendEmail']").fill(temp_email2) # Fill email
