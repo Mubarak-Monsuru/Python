@@ -106,7 +106,7 @@ def click_available_button(page):
         print("Neither button is available.")
 
 with sync_playwright() as playwright:
-    browser = playwright.chromium.launch(headless=False)
+    browser = playwright.chromium.launch(headless=True)
     context = browser.new_context()
 
     try:
