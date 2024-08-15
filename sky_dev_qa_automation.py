@@ -3,41 +3,79 @@ from datetime import datetime
 import time
 import re
 import pyperclip
+import imaplib
+import email
+import random
 
-def extract_verification_code(email_content):
-    # Assuming the verification code is a 6-digit number
-    match = re.search(r'\b\d{6}\b', email_content)
+# Email credentials for the first Gmail account
+EMAIL_ACCOUNT = "skytrade.ui.test@gmail.com"
+APP_PWD = "pmsw mkpn hhlv dygc"
+EMAIL_FOLDER = "inbox"
+
+num = random.randint(1, 10000000)
+
+# Email credentials for the second Gmail account
+SECOND_EMAIL_ACCOUNT = f"skytrade.ui.test+{num}@gmail.com"
+APP_PWD_SECOND = "pmsw mkpn hhlv dygc"
+
+def extract_verification_code(subject):
+    """Extract a 6-digit verification code from the email subject."""
+    match = re.search(r'\b\d{6}\b', subject)
     if match:
         return match.group(0)
-    return None
+    else:
+        return None
 
-def new_verification_code(referral_email_content):
-    # Assuming the verification code is a 6-digit number
-    match = re.search(r'\b\d{6}\b', referral_email_content)
-    if match:
-        return match.group(0)
-    return None    
+def read_verification_email(email_account, app_pwd):
+    """Read the latest verification email and extract the OTP code."""
+    M = imaplib.IMAP4_SSL('imap.gmail.com')
+    M.login(email_account, app_pwd)
+    M.select(EMAIL_FOLDER)
 
-# Extraction of Referall link and code
-def extract_referral_link(referral_content):
-  """Extracts the referral link and code from the provided content.
+    rv, data = M.search(None, "ALL")
+    if rv != 'OK':
+        print("No messages found!")
+        return None
 
-  Returns a tuple containing the link (or None) and code (or None).
-  """
-  link_match = re.search(r'https?://[^\s"]+', referral_content)
-  code_match = re.search(r'\b[A-Z0-9]+\b', referral_content)
+    latest_email_id = data[0].split()[-1]
+    rv, data = M.fetch(latest_email_id, '(RFC822)')
+    if rv != 'OK':
+        print("ERROR getting message", latest_email_id)
+        return None, None
 
-  if link_match:
-    link = link_match.group()
-  else:
-    link = None
+    msg = email.message_from_bytes(data[0][1])
+    email_subject = msg['Subject']
+    email_body = ""
 
-  if code_match:
-    code = code_match.group()
-  else:
-    code = None
+    if msg.is_multipart():
+        for part in msg.walk():
+            if part.get_content_type() == "text/plain":
+                try:
+                    email_body = part.get_payload(decode=True).decode('utf-8')
+                except UnicodeDecodeError:
+                    email_body = part.get_payload(decode=True).decode('latin-1')
+                break
+    else:
+        try:
+            email_body = msg.get_payload(decode=True).decode('utf-8')
+        except UnicodeDecodeError:
+            email_body = msg.get_payload(decode=True).decode('latin-1')
 
-  return link, code
+    M.logout()
+
+    print(f"Email Subject: {email_subject}")
+    return email_subject, email_body
+
+# Function to extract the referral link and code from the email body
+def extract_referral_link_and_code(email_body):
+    # Adjust the regex to match the specific pattern in your email content
+    link_match = re.search(r'https://sky\.trade/r/[\w]{6}', email_body)
+    if link_match:
+        referral_link = link_match.group(0)
+        referral_code = link_match.group(0).split("/")[-1]  # Last part of the URL
+        return referral_link, referral_code
+    return None, None
+
 
 def select_current_date(page):
     current_date = str(datetime.now().day)
@@ -52,79 +90,57 @@ def click_available_button(page):
     points_button = page.locator("a[href='/points']")
     referral_button = page.locator("a[href='/referral']")
 
-    # Check if the points button exists and click it
     if points_button.count() > 0:
         points_button.click()
-    # Otherwise, check if the referral button exists and click it
     elif referral_button.count() > 0:
         referral_button.click()
     else:
         print("Neither button is available.")
 
 with sync_playwright() as playwright:
-    browser = playwright.chromium.launch(headless=False)
+    browser = playwright.chromium.launch(headless=True)
     context = browser.new_context()
 
     try:
-        # Get temporary email address 1
-        email_page = context.new_page()
-        email_page.goto("https://temp-mail.org/en/", timeout=0)
-        print("Opened temp-mail.org")
-
-        # Wait for email address to be generated
-        #time.sleep(5)  # Adjust wait time depending on email generation speed
-        email_page.locator("button[id='click-to-copy']").click()
-        time.sleep(1)  # Give a moment for the clipboard to update
-        temp_email2 = pyperclip.paste()
-        print(f"Temporary email2: {temp_email2}")
-
-        # Open new tab for SkyTrade
         page = context.new_page()
-        page.goto(" https://dev.sky.trade/")
+        page.goto("https://dev.sky.trade/")
         page.wait_for_load_state("networkidle", timeout=0)
         print("Opened SkyTrade")
 
-        # Accept cookie
         page.locator("button.rounded.text-white").click()
         page.wait_for_load_state("networkidle", timeout=0)
         print("Accepted cookies")
 
-        # Register Testing
         page.locator("p[class='md:block hidden']").click()
-        page.locator("span.cursor-pointer.font-bold").click()
-        print("Opened Register page")
+        print("Opened Login page")
 
-        # Register with temporary email
-        page.locator("input[id='email']").fill(temp_email2)
+        page.locator("input[id='email']").fill(EMAIL_ACCOUNT)
         page.locator("button.bg-dark-blue").click()
         page.wait_for_load_state("networkidle", timeout=0)
         print("Filled email and clicked login")
 
-        # Wait for the email to arrive and get its content
-        email_page.bring_to_front()
-        time.sleep(13)
-        #page_email.locator("div.flex.flex-col.items-center.justify-center").nth(1).click()  # Refresh email list
-        print("Refreshed email list")
-        email_content = email_page.locator("a[class='viewLink title-subject']").nth(1).inner_text()
-        print(email_content)
-        verification_code = extract_verification_code(email_content)
-        print(f"Verification code: {verification_code}")
+        time.sleep(15)
+        email_subject, email_body = read_verification_email(EMAIL_ACCOUNT, APP_PWD)
 
-        if verification_code:
-            # Go back to the original page and input the verification code
-            page.bring_to_front()
-            otp_inputs = page.locator(".otp-input-container .otp-input")
-            for i, digit in enumerate(verification_code):
-                otp_inputs.nth(i).fill(digit)
-            print("Filled verification code")
-            page.wait_for_load_state("networkidle", timeout=0)
+        if email_subject:
+            verification_code = extract_verification_code(email_subject)
+            if verification_code:
+                print(f"Verification Code: {verification_code}")
+                page.bring_to_front()
+                otp_inputs = page.locator(".otp-input-container .otp-input")
+                for i, digit in enumerate(verification_code):
+                    otp_inputs.nth(i).fill(digit)
+                print("Filled verification code")
+                page.wait_for_load_state("networkidle", timeout=0)
 
         page.wait_for_load_state("networkidle", timeout=0)
         #time.sleep(10)
 
         # Check for Set up 2FA page and complete if exists
         try:
-            if page.locator("p.text-lg.font-bold").count() > 0:
+            two_fa = page.locator("p.text-lg.font-bold")
+            two_fa.wait_for(timeout=30000)
+            if two_fa.count() > 0:
                 page.locator("button.t-btn-primar").click()
                 page.wait_for_load_state("networkidle", timeout=0)
                 page.locator("input[placeholder='Enter device name']").fill("dvc") # Enter device name
@@ -145,9 +161,10 @@ with sync_playwright() as playwright:
 
         # Check for first login page and wait for it to escape
         first_login = page.locator("input[placeholder='email@mail.com']")
-        first_login.wait_for(timeout=0)
+        #first_login.wait_for(timeout=30000)
+        time.sleep(5)
         
-        if first_login.count() > 0:
+        if first_login.is_visible():
             #page.locator("button.bg-dark-blue").click()
             print("First login page found, waiting for the next step")
             page.wait_for_load_state("networkidle", timeout=0)
@@ -157,38 +174,17 @@ with sync_playwright() as playwright:
         page.wait_for_load_state("networkidle", timeout=0)
         #time.sleep(10)
 
-        # Check if the page has moved to the Get Started Page
-        get_started = page.locator("p.text-center.text-base")
-        get_started.wait_for(timeout=0)
-
-        if get_started.count() > 0:
-            page.locator("button.bg-dark-blue").click()
-            print("Clicked Get Started")
-        else:
-            print("Get Started page not found, proceeding to the next step")
-
-        page.wait_for_load_state("networkidle", timeout=0)   
-
-        # Fill Customer Information
-        page.locator("input[type='name']").fill("Joe Rex")
-        page.locator("div[class='react-international-phone-country-selector']").click()
-        list_box = page.locator("ul[class='react-international-phone-country-selector-dropdown']")
-        county_selector = list_box.page.locator("li[id='react-international-phone__za-option']").click()
-        page.locator("input[class='react-international-phone-input']").fill("27824659512")
-        page.locator("input[id='individual']").click()
-        page.locator("div.justify-center.text-white").click()
-        print("Filled Customer Information")
-        page.wait_for_load_state("networkidle", timeout=0)
-
         # Airspace Claim Testing
         dash_board = page.locator("div.relative.z-20")
         airspace_section = dash_board.locator("a[href='/airspaces']").click()
-        reactour_close = page.locator("button.reactour__close-button")
-        reactour_close.wait_for(timeout=0)
-        reactour_close.click()
+        page.wait_for_load_state('networkidle', timeout=0)
+        time.sleep(60)
+        # reactour_close = page.locator("button.reactour__close-button")
+        # reactour_close.wait_for(timeout=0)
+        # reactour_close.click()
         airspace_address = page.locator("input[id='searchAirspaces']")
         airspace_address.fill("20 Henley Street, Port Elizabeth")
-        page.locator("div[class='w-full p-5 text-left text-[#222222]']").nth(0).click()
+        page.locator("div[class='w-[10%] h-6 mr-2']").nth(0).click()
         page.locator("div.Claim-airspacebtn-step").click()
         page.locator("select[id='timeZone']").select_option("Africa/Harare")
         page.locator("input[id='hasStorageHub']").click()
@@ -261,125 +257,40 @@ with sync_playwright() as playwright:
         page.locator("svg[data-testid='CalendarIcon']").click()
         select_current_date(page)
         #page.locator("button[aria-colindex='4']").nth(4).click()
-        page.locator("li[aria-label='6 hours']").click()
-        page.locator("li[aria-label='PM']").click()
+        # page.locator("li[aria-label='10 hours']").click()
+        # page.locator("li[aria-label='PM']").click()
         page.locator("button.flex").click()
         page.locator("div.text-center").click()
         print("Airspace Renting Completed")
         page.wait_for_load_state("networkidle", timeout=0)
         #time.sleep(5)
 
-        # Get temporary email address 2
-        email_page.bring_to_front()
-        # time.sleep(5)  # Adjust wait time depending on email generation speed
-        email_page.locator("button[id='click-to-delete']").click()
-        email_page.wait_for_load_state("networkidle", timeout=0)
-        email_page.locator("button[id='click-to-copy']").click()
-        time.sleep(1)  # Give a moment for the clipboard to update
-        temp_email2 = pyperclip.paste()
-        print(f"Temporary email2: {temp_email2}")
-
-        # Referral Program
-        page.bring_to_front()
+        # Send referral to the second email
         click_available_button(page)
-        # referral_program = dash_board.locator("a[href='/points']").click()
         page.keyboard.press('PageDown')
         page.locator("div.cursor-pointer.transition.ease-linear.delay-75").nth(1).click()
-        page.locator("input[id='friendEmail']").fill(temp_email2) # Fill email
+        page.locator("input[id='friendEmail']").fill(SECOND_EMAIL_ACCOUNT)  # Fill second email
         page.wait_for_timeout(1000)
-        page.locator("div.justify-center.cursor-pointer.rounded-lg").nth(3).click() # Send referral link and code
-        page.locator("p[class='font-normal text-[#5D7285] text-[14.64px] tracking-[1%]']").nth(7).click() # Logout
+        page.locator("div.justify-center.cursor-pointer.rounded-lg").nth(3).click()  # Send referral link and code
+        page.locator("p[class='font-normal text-[#5D7285] text-[14.64px] tracking-[1%]']").nth(7).click()  # Logout
         page.wait_for_load_state("networkidle", timeout=0)
-        #time.sleep(10)
 
-        # Wait for the email to arrive and get link and code
-        time.sleep(5)
-        email_page.bring_to_front()
-        email_page.locator("a[id='click-to-refresh']").click()  # Refresh email list
-        print("Refreshed email list")
-        sent_email = email_page.locator("a[class='viewLink title-subject']").nth(1)
-        sent_email.wait_for(timeout=0)
-        sent_email.click()
-        email_page.wait_for_load_state("networkidle", timeout=0)
-        referral_content = email_page.locator("td").nth(5).inner_text()
-        print(referral_content)
-        link, code = extract_referral_link(referral_content)
+       # Reading the latest email from the second Gmail account
+        email_subject, email_body = read_verification_email(SECOND_EMAIL_ACCOUNT, APP_PWD_SECOND)
 
-        if link and code:
-            print(f"Referral link: {link}")
-            print(f"Referral code: {code}")
+        # Extracting the referral link and code
+        if email_body:
+            referral_link, referral_code = extract_referral_link_and_code(email_body)
+            if referral_link and referral_code:
+                print(f"Referral Link: {referral_link}")
+                print(f"Referral Code: {referral_code}")
+            else:
+                print("Referral link or code not found in the email body.")
         else:
-            print("Referral link or code not found in email content.")
-
-        # Go to referral link and register
-        referral_page = context.new_page()
-        referral_page.goto(link, timeout=0)
-        print("Opened referral link")
-        referral_page.wait_for_load_state("networkidle", timeout=0)
-
-        referral_page.locator("button.rounded.text-white").click()
-        referral_page.wait_for_load_state("networkidle", timeout=0)
-
-        referral_page.locator("input[id='email']").fill(temp_email2)
-        referral_page.locator("button.bg-dark-blue").click()
-        referral_page.wait_for_load_state("networkidle", timeout=0)
-        print("Filled Referral email and clicked login")
-
-        # Wait for the email to arrive and get its content
-        time.sleep(10)
-        email_page.bring_to_front()
-        email_page.locator("a[id='click-to-refresh']").click() # Refresh email list
-        #email_page.wait_for_load_state("networkidle", timeout=0)
-        print("Refreshed email list")
-        referral_email_content = email_page.locator("a[class='viewLink title-subject']").nth(1).inner_text()
-        print(referral_email_content)
-        referral_verification_code = new_verification_code(referral_email_content)
-        print(f"Referral verification code: {referral_verification_code}")
-
-        if referral_verification_code:
-            # Go back to the original page and input the verification code
-            referral_page.bring_to_front()
-            otp_inputs_2 = referral_page.locator(".otp-input-container .otp-input")
-            for i, digit in enumerate(referral_verification_code):
-                otp_inputs_2.nth(i).fill(digit)
-            print("Filled verification code 2")
-            referral_page.wait_for_load_state("networkidle", timeout=0)
-
-        referral_page.wait_for_load_state("networkidle", timeout=0)
-        #time.sleep(10)
-
-         # Check for first login page and wait for it to escape
-        first_login_2 = referral_page.locator("input[placeholder='email@mail.com']")
-        first_login_2.wait_for(timeout=0)
-        
-        if first_login_2.count() > 0:
-            print("First login 2 page found, waiting for the next step")
-            referral_page.wait_for_load_state("networkidle", timeout=0)
-        else:
-            print("First login 2 page not found, proceeding to the next step")
-
-        referral_page.wait_for_load_state("networkidle", timeout=0)
-        #time.sleep(10)
-
-
-        referral_page.locator("button.bg-dark-blue").click()
-        referral_page.wait_for_load_state("networkidle", timeout=0)   
-
-        # Fill New Customer Information
-        referral_page.locator("input[type='name']").fill("Casper Fills")
-        referral_page.locator("div[class='react-international-phone-country-selector']").click()
-        list_box = referral_page.locator("ul[class='react-international-phone-country-selector-dropdown']")
-        county_selector = list_box.locator("li[id='react-international-phone__za-option']").click()
-        referral_page.locator("input[class='react-international-phone-input']").fill("27646923781")
-        referral_page.locator("input[id='individual']").click()
-        referral_page.locator("div.justify-center.text-white").click()
-        print("Referral Completed")
-        referral_page.wait_for_load_state("networkidle", timeout=0)
+            print("No email found for referral extraction.")
 
     except Exception as e:
-        print(f"An error occurred: {e}")
-    
+        print(f"Error: {e}")
     finally:
-        # Close the browser after a delay
-        time.sleep(5)
+        context.close()
         browser.close()
