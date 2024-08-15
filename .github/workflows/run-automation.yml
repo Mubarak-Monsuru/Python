@@ -26,4 +26,4 @@ jobs:
           playwright install
 
       - name: Run the automation script
-        run: xvfb-run -a python script/sky_auto2.py  # Replace with the actual script name
+        run: xvfb-run -a python sky_dev_qa_automation.py  # Replace with the actual script name
