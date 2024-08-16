@@ -98,7 +98,7 @@ def click_available_button(page):
         print("Neither button is available.")
 
 with sync_playwright() as playwright:
-    browser = playwright.chromium.launch(headless=True)
+    browser = playwright.chromium.launch(headless=False)
     context = browser.new_context()
 
     try:
@@ -134,30 +134,6 @@ with sync_playwright() as playwright:
                 page.wait_for_load_state("networkidle", timeout=0)
 
         page.wait_for_load_state("networkidle", timeout=0)
-        #time.sleep(10)
-
-        # Check for Set up 2FA page and complete if exists
-        try:
-            two_fa = page.locator("p.text-lg.font-bold")
-            two_fa.wait_for(timeout=30000)
-            if two_fa.count() > 0:
-                page.locator("button.t-btn-primar").click()
-                page.wait_for_load_state("networkidle", timeout=0)
-                page.locator("input[placeholder='Enter device name']").fill("dvc") # Enter device name
-                page.locator("input[id='clear-browser-history']").click() # Click on clear browser
-                page.locator("button.t-btn-primary.rounded-full.block").click()
-                page.wait_for_load_state("networkidle", timeout=0)
-                page.locator("input[id='passwordless-email']").fill("+27-824378777") # Fill phone number
-                page.locator("button.t-btn.t-btn-primary.rounded-full").click()
-                page.wait_for_load_state("networkidle", timeout=0)
-                print("Authorized 2FA")
-            else:
-                print("2FA not found")
-        except Exception as e:
-            print(f"Error during 2FA interaction: {e}")
-
-        page.wait_for_load_state("networkidle", timeout=0)
-        #time.sleep(10)
 
         # Check for first login page and wait for it to escape
         first_login = page.locator("input[placeholder='email@mail.com']")
@@ -165,7 +141,6 @@ with sync_playwright() as playwright:
         time.sleep(5)
         
         if first_login.is_visible():
-            #page.locator("button.bg-dark-blue").click()
             print("First login page found, waiting for the next step")
             page.wait_for_load_state("networkidle", timeout=0)
         else:
@@ -256,6 +231,7 @@ with sync_playwright() as playwright:
         rent_to_click.locator("span.rounded-lg.text-center").click()
         page.locator("svg[data-testid='CalendarIcon']").click()
         select_current_date(page)
+        page.locator("button.MuiButtonBase-root.MuiButton-root").click()
         #page.locator("button[aria-colindex='4']").nth(4).click()
         # page.locator("li[aria-label='10 hours']").click()
         # page.locator("li[aria-label='PM']").click()
@@ -273,6 +249,7 @@ with sync_playwright() as playwright:
         page.wait_for_timeout(1000)
         page.locator("div.justify-center.cursor-pointer.rounded-lg").nth(3).click()  # Send referral link and code
         page.locator("p[class='font-normal text-[#5D7285] text-[14.64px] tracking-[1%]']").nth(7).click()  # Logout
+        print("Referral link sent")
         page.wait_for_load_state("networkidle", timeout=0)
 
        # Reading the latest email from the second Gmail account
