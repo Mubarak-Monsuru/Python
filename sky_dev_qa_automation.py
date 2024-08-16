@@ -98,7 +98,7 @@ def click_available_button(page):
         print("Neither button is available.")
 
 with sync_playwright() as playwright:
-    browser = playwright.chromium.launch(headless=False)
+    browser = playwright.chromium.launch(headless=True)
     context = browser.new_context()
 
     try:
@@ -151,6 +151,7 @@ with sync_playwright() as playwright:
 
         # Airspace Claim Testing
         dash_board = page.locator("div.relative.z-20")
+        time.sleep(10)
         airspace_section = dash_board.locator("a[href='/airspaces']").click()
         page.wait_for_load_state('networkidle', timeout=0)
         time.sleep(60)
@@ -229,6 +230,7 @@ with sync_playwright() as playwright:
         rent_to_click = page.locator("div[data-value='1025 Robertson St Fort Collins CO']").nth(0)
         rent_to_click.wait_for(timeout=0)
         rent_to_click.locator("span.rounded-lg.text-center").click()
+        time.sleep(10)
         page.locator("svg[data-testid='CalendarIcon']").click()
         select_current_date(page)
         page.locator("button.MuiButtonBase-root.MuiButton-root").click()
@@ -252,19 +254,19 @@ with sync_playwright() as playwright:
         print("Referral link sent")
         page.wait_for_load_state("networkidle", timeout=0)
 
-       # Reading the latest email from the second Gmail account
-        email_subject, email_body = read_verification_email(SECOND_EMAIL_ACCOUNT, APP_PWD_SECOND)
+    #    # Reading the latest email from the second Gmail account
+    #     email_subject, email_body = read_verification_email(SECOND_EMAIL_ACCOUNT, APP_PWD_SECOND)
 
-        # Extracting the referral link and code
-        if email_body:
-            referral_link, referral_code = extract_referral_link_and_code(email_body)
-            if referral_link and referral_code:
-                print(f"Referral Link: {referral_link}")
-                print(f"Referral Code: {referral_code}")
-            else:
-                print("Referral link or code not found in the email body.")
-        else:
-            print("No email found for referral extraction.")
+    #     # Extracting the referral link and code
+    #     if email_body:
+    #         referral_link, referral_code = extract_referral_link_and_code(email_body)
+    #         if referral_link and referral_code:
+    #             print(f"Referral Link: {referral_link}")
+    #             print(f"Referral Code: {referral_code}")
+    #         else:
+    #             print("Referral link or code not found in the email body.")
+    #     else:
+    #         print("No email found for referral extraction.")
 
     except Exception as e:
         print(f"Error: {e}")
