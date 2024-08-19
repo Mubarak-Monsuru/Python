@@ -1,27 +1,29 @@
-name: UI Tests
+name: Run Automation Script
 
 on:
-  workflow_dispatch:
+  repository_dispatch:
+    types: [trigger-automation]
 
 jobs:
-  ui_tests:
+  run-tests:
     runs-on: ubuntu-latest
-    steps:
-    - name: Get UI Tests Repository
-      uses: actions/checkout@v4    
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.12.3'  # Specify the Python version you need
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y xclip
-        python -m pip install --upgrade pip &&
-        ls -all && \
-        pip install -r requirements.txt && playwright install-deps && playwright install
 
-    - name: Run the automation script
-      run: |
-        pwd && ls -all && cd script && \
-        xvfb-run --server-args='-screen 0, 1920x1080x24' python -u sky_dev_qa_automation.py
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.12.3'  # Specify the Python version you need
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xclip # or install xsel
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          playwright install
+
+      - name: Run the automation script
+        run: xvfb-run -a python sky_dev_qa_automation.py  # Replace with the actual script name
