@@ -18,7 +18,7 @@ Outlier analysis was conducted and 8 columns are identified to contain outliers.
 ### 3.1 Employee Demographics
 Visualizations were created to depict the distribution of employee ages, genders, and marital statuses.
 
-![Employee Demographic](.png\employee_demographic.png)
+![Employee Demographic](.png/employee_demographic.png)
 **Figure 1:** Employee Demographics
 
 #### Observations:
@@ -38,7 +38,7 @@ Visualizations were created to depict the distribution of employee ages, genders
 ### 3.2 Salary Analysis
 Visualizations were used to understand salary distributions based on factors like job roles, years of experience, and education fields.
 
-![Salary Analysis](.png\salary_analysis.png)
+![Salary Analysis](.png/salary_analysis.png)
 **Figure 2:** Salary Distributions
 
 #### Observations:
